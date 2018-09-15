@@ -1,0 +1,5 @@
+﻿Hello, World!
+Kira is the best programmer in the whole world.
+A
+B
+123
