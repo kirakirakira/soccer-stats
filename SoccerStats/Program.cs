@@ -18,7 +18,7 @@ namespace SoccerStats
 
             foreach(var player in players)
             {
-                Console.WriteLine(player.second_name);
+                Console.WriteLine(player.PointsPerGame);
             }
             Console.ReadLine();
         }
@@ -92,6 +92,11 @@ namespace SoccerStats
                 players = serializer.Deserialize<List<Player>>(jsonReader);
             }
             return players;
+        }
+
+        public static GetTopTenPlayers(List<Player> players)
+        {
+            players.Sort()
         }
     }
 }
