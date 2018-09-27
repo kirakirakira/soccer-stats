@@ -2,6 +2,7 @@
 using System.IO;
 using System.Collections.Generic;
 using Newtonsoft.Json;
+using System.Net;
 
 namespace SoccerStats
 {
@@ -15,11 +16,21 @@ namespace SoccerStats
             var fileContents = ReadSoccerResults(fileName);
             fileName = Path.Combine(directory.FullName, "players.json");
             var players = DeserializePlayers(fileName);
+            var topTenPlayers = GetTopTenPlayers(players);
 
-            foreach(var player in players)
+            foreach(var player in topTenPlayers)
             {
-                Console.WriteLine(player.PointsPerGame);
+                List<NewsResult> newsResults = GetNewsForPlayer(string.Format("{0} {1}", player.FirstName, player.LastName));
+                foreach(var result in newsResults)
+                {
+                    Console.WriteLine(string.Format("Date: {0:f}, Headline: {1}, Summary:D {2} \r\n"), result.DatePublished, result.Headline, result.Summary);
+                    Console.ReadKey();
+                }
             }
+
+            fileName = Path.Combine(directory.FullName, "topten.json");
+            SerializePlayersToFile(topTenPlayers, fileName);
+            Console.WriteLine(GetGoogleHomePage());
             Console.ReadLine();
         }
 
@@ -94,9 +105,57 @@ namespace SoccerStats
             return players;
         }
 
-        public static GetTopTenPlayers(List<Player> players)
+        public static List<Player> GetTopTenPlayers(List<Player> players)
         {
-            players.Sort()
+            var topTenPlayers = new List<Player>();
+            players.Sort(new PlayerComparer());
+            int counter = 0;
+            foreach (var player in players)
+            {
+                topTenPlayers.Add(player);
+                counter++;
+                if (counter == 10)
+                    break;
+            }
+            return topTenPlayers;
+        }
+
+        public static void SerializePlayersToFile(List<Player> players, string fileName)
+        {
+            var serializer = new JsonSerializer();
+            using (var writer = new StreamWriter(fileName))
+            using (var jsonWriter = new JsonTextWriter(writer))
+            {
+                serializer.Serialize(jsonWriter, players);
+            }
+        }
+
+        public static string GetGoogleHomePage()
+        {
+            var webClient = new WebClient();
+            byte[] googleHome = webClient.DownloadData("https://www.google.com");
+
+            using(var stream = new MemoryStream(googleHome))
+            using(var reader = new StreamReader(stream))
+            {
+                return reader.ReadToEnd();
+            }
+        }
+
+        public static List<NewsResult> GetNewsForPlayer(string playerName)
+        {
+            var results = new List<NewsResult>();
+            var webClient = new WebClient();
+            webClient.Headers.Add("Ocp-Apim-Something-Key", "myfakeapikey");
+            byte[] searchResults = webClient.DownloadData(string.Format("https://www.azureisab.com/api/search?q={0}", playerName));
+            var serializer = new JsonSerializer();
+            using (var stream = new MemoryStream(searchResults))
+            using (var reader = new StreamReader(stream))
+            using (var jsonReader = new JsonTextReader(reader))
+            {
+                results = serializer.Deserialize<NewsSearch>(jsonReader).NewsResults;
+            }
+            return results;
         }
     }
 }
